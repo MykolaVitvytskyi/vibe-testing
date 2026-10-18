@@ -1,4 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
+import { RoundedBoxGeometry } from '../vendor/RoundedBoxGeometry.js';
+import { assetURL } from './assets.js';
+import { oakFloorTexture, quietWoodTexture, plasterBumpTexture, runnerTexture, bookTexture } from './surfaces.js';
 
 // Every room connects to the central aisle. Distances are in metres.
 export function createMuseum(scene, artworks = []) {
@@ -18,25 +21,32 @@ export function createMuseum(scene, artworks = []) {
   const batches = new Map();
   const transform = new THREE.Object3D();
   const materials = {
-    stone: new THREE.MeshStandardMaterial({ color: '#d2c4a6', roughness: .86 }),
-    pale: new THREE.MeshStandardMaterial({ color: '#e8dfcb', roughness: .83 }),
-    ceiling: new THREE.MeshStandardMaterial({ color: '#d6cbb6', roughness: .94, side: THREE.DoubleSide }),
-    wood: new THREE.MeshStandardMaterial({ color: '#442b20', roughness: .56 }),
-    woodLight: new THREE.MeshStandardMaterial({ color: '#765038', roughness: .5 }),
-    dark: new THREE.MeshStandardMaterial({ color: '#241d18', roughness: .76 }),
-    green: new THREE.MeshStandardMaterial({ color: '#40594b', roughness: .95 }),
-    red: new THREE.MeshStandardMaterial({ color: '#805347', roughness: .95 }),
-    blue: new THREE.MeshStandardMaterial({ color: '#354650', roughness: .95 }),
-    brass: new THREE.MeshStandardMaterial({ color: '#ae8850', roughness: .35, metalness: .75 }),
+    stone: new THREE.MeshStandardMaterial({ color: '#cec4ae', roughness: .88 }),
+    pale: new THREE.MeshStandardMaterial({ color: '#e5ddca', roughness: .86 }),
+    ceiling: new THREE.MeshStandardMaterial({ color: '#ded6c3', roughness: .94, side: THREE.DoubleSide }),
+    wood: new THREE.MeshStandardMaterial({ color: '#896c50', roughness: .64 }),
+    woodLight: new THREE.MeshStandardMaterial({ color: '#aa8863', roughness: .61 }),
+    dark: new THREE.MeshStandardMaterial({ color: '#342d23', roughness: .86 }),
+    green: new THREE.MeshStandardMaterial({ color: '#667465', roughness: .96 }),
+    red: new THREE.MeshStandardMaterial({ color: '#96796c', roughness: .96 }),
+    blue: new THREE.MeshStandardMaterial({ color: '#657c80', roughness: .96 }),
+    brass: new THREE.MeshStandardMaterial({ color: '#b99c60', roughness: .42, metalness: .82 }),
     bronze: new THREE.MeshStandardMaterial({ color: '#6d6250', roughness: .44, metalness: .68 }),
-    leather: new THREE.MeshStandardMaterial({ color: '#435048', roughness: .79 }),
-    light: new THREE.MeshStandardMaterial({ color: '#fff0c9', emissive: '#ffd789', emissiveIntensity: 2.2, roughness: .3 }),
-    glass: new THREE.MeshStandardMaterial({ color: '#d9e7e2', emissive: '#aec9d1', emissiveIntensity: .58, roughness: .9 }),
+    leather: new THREE.MeshStandardMaterial({ color: '#48594b', roughness: .74 }),
+    lampGlass: new THREE.MeshPhysicalMaterial({ color: '#194d34', emissive: '#2a623c', emissiveIntensity: .28, roughness: .24, metalness: .08, clearcoat: .8, clearcoatRoughness: .18, side: THREE.DoubleSide }),
+    light: new THREE.MeshStandardMaterial({ color: '#fff5d7', emissive: '#ffdc94', emissiveIntensity: 2.4, roughness: .3 }),
+    glass: new THREE.MeshStandardMaterial({ color: '#d8e3dc', emissive: '#bdcfc5', emissiveIntensity: .48, roughness: .8 }),
     black: new THREE.MeshStandardMaterial({ color: '#0d1110', roughness: .85 }),
   };
   const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
   const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 1, 16);
   const sphereGeometry = new THREE.SphereGeometry(1, 12, 8);
+  const roundedGeometries = new Map();
+  const plaster = plasterBumpTexture();
+  ['stone', 'pale', 'ceiling', 'green', 'red', 'blue'].forEach((key) => {
+    materials[key].bumpMap = plaster;
+    materials[key].bumpScale = .012;
+  });
 
   function batch(geometry, material, x, y, z, sx, sy, sz, ry = 0, rz = 0) {
     const key = `${geometry.uuid}:${material.uuid}`;
@@ -50,6 +60,11 @@ export function createMuseum(scene, artworks = []) {
   function box(mat, x, y, z, w, h, d, ry = 0) { batch(boxGeometry, mat, x, y, z, w, h, d, ry); }
   function cylinder(mat, x, y, z, radius, height, ry = 0) { batch(cylinderGeometry, mat, x, y, z, radius, height, radius, ry); }
   function sphere(mat, x, y, z, radius) { batch(sphereGeometry, mat, x, y, z, radius, radius, radius); }
+  function roundedBox(mat, x, y, z, w, h, d, radius = .025, rotation = 0) {
+    const key = `${w}:${h}:${d}:${radius}`;
+    if (!roundedGeometries.has(key)) roundedGeometries.set(key, new RoundedBoxGeometry(w, h, d, 2, radius));
+    batch(roundedGeometries.get(key), mat, x, y, z, 1, 1, 1, rotation);
+  }
   function obstacle(x, z, w, d) { obstacles.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 }); }
   function wall(mat, x, z, w, d, height = 5.6) {
     box(mat, x, height / 2, z, w, height, d);
@@ -58,14 +73,42 @@ export function createMuseum(scene, artworks = []) {
     obstacle(x, z, w, d);
   }
 
-  // A single shared material gives all of the parquet a continuous grain.
-  const floorTexture = createParquetTexture();
-  const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, roughness: .58, color: '#b39a77' });
+  // A quiet oak floor: fine photographed fibres, low-contrast board joints and
+  // mipmaps. Material loading joins the same readiness contract as the paintings.
+  const floorMaterial = new THREE.MeshStandardMaterial({ map: oakFloorTexture(), roughness: .72, color: '#d1c2aa' });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(46, 56), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
-  floor.position.set(0, -.015, -7);
+  floor.position.set(0, 0, -7);
   floor.receiveShadow = true;
   building.add(floor);
+  texturePromises.push(new Promise((resolve) => {
+    new THREE.TextureLoader().load(assetURL('assets/materials/wood-grain-albedo.jpg'), (texture) => {
+      const oldFloor = floorMaterial.map;
+      floorMaterial.map = oakFloorTexture(texture.image);
+      floorMaterial.needsUpdate = true;
+      oldFloor.dispose();
+      texture.dispose();
+      resolve({ id: 'surface-oak', loaded: true });
+    }, undefined, () => resolve({ id: 'surface-oak', loaded: false }));
+  }));
+  texturePromises.push(new Promise((resolve) => {
+    new THREE.TextureLoader().load(assetURL('assets/materials/walnut-albedo.png'), (texture) => {
+      // The photographed walnut supplies its real brown undertone. Against the
+      // neutral oak map this tint looked blond; walnut gives a deeper finish.
+      const grain = quietWoodTexture(texture.image);
+      [materials.wood, materials.woodLight].forEach((material) => {
+        material.map = grain;
+        material.needsUpdate = true;
+      });
+      texture.dispose();
+      resolve({ id: 'surface-walnut', loaded: true });
+    }, undefined, () => resolve({ id: 'surface-walnut', loaded: false }));
+  }));
+  const runner = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 31.4), new THREE.MeshStandardMaterial({ map: runnerTexture(), roughness: 1, color: '#b6b5a3' }));
+  runner.rotation.x = -Math.PI / 2;
+  runner.position.set(0, .002, -.2);
+  runner.receiveShadow = true;
+  building.add(runner);
 
   // Main reading room: the lower walls support a long, ribbed barrel vault.
   [-1, 1].forEach((side) => {
@@ -80,7 +123,9 @@ export function createMuseum(scene, artworks = []) {
   const vault = new THREE.Mesh(vaultGeometry(6.5, 4.25, 6.05, -19, 19), materials.ceiling);
   vault.receiveShadow = true;
   building.add(vault);
-  const ribGeometry = archBandGeometry(6.52, 4.27, .13, 6.045, .13);
+  // The ribs sit clearly inside the vault, instead of sharing nearly the same
+  // curved surface. That separation also removes grazing-angle depth flicker.
+  const ribGeometry = archBandGeometry(6.43, 4.17, .16, 6.035, .22);
   [-18.8, -12.5, -6.25, 0, 6.25, 12.5, 18.8].forEach((z) => {
     const rib = new THREE.Mesh(ribGeometry, materials.pale);
     rib.position.z = z;
@@ -114,9 +159,11 @@ export function createMuseum(scene, artworks = []) {
     wall(mat, side * 22.05, 0, .28, 16.3);
     wall(mat, cx, -8.05, 15.55, .28);
     wall(mat, cx, 8.05, 15.55, .28);
-    wall(mat, side * 6.64, -5.3, .15, 5.4);
-    wall(mat, side * 6.64, 5.3, .15, 5.4);
-    box(mat, side * 6.64, 5.24, 0, .18, .72, 5.2);
+    // The coloured gallery lining starts outside the stone partition. Keeping
+    // its jambs and header back avoids duplicate exposed faces at the portal.
+    wall(mat, side * 6.75, -5.32, .10, 5.36);
+    wall(mat, side * 6.75, 5.32, .10, 5.36);
+    box(mat, side * 6.75, 5.27, 0, .10, .66, 5.28);
     galleryCeiling(cx, 0, 15.5, 16, materials.pale);
     [-1, 1].forEach((end) => {
       box(materials.wood, cx, 4.65, end * 7.88, 10.3, .9, .12);
@@ -132,9 +179,9 @@ export function createMuseum(scene, artworks = []) {
   wall(materials.blue, -9.05, -26, .28, 14.3);
   wall(materials.blue, 9.05, -26, .28, 14.3);
   wall(materials.blue, 0, -33.05, 18.3, .28);
-  wall(materials.blue, -5.78, -19.08, 6.55, .15);
-  wall(materials.blue, 5.78, -19.08, 6.55, .15);
-  box(materials.blue, 0, 5.24, -19.08, 5, .72, .18);
+  wall(materials.blue, -5.8, -19.23, 6.5, .10);
+  wall(materials.blue, 5.8, -19.23, 6.5, .10);
+  box(materials.blue, 0, 5.27, -19.23, 5.1, .66, .10);
   galleryCeiling(0, -26, 18, 14, materials.pale);
   portal(0, -18.84, 0, 'СЕВЕРНЫЙ КАБИНЕТ');
   galleryBench(0, -26, 0);
@@ -148,8 +195,20 @@ export function createMuseum(scene, artworks = []) {
   });
 
   // Library shelves are instanced, including the individual book spines.
-  const bookMaterials = ['#74654b', '#4c5b52', '#6b342e', '#313f45', '#9c8359', '#454128', '#5f4c43', '#8b6f4a']
-    .map((color) => new THREE.MeshStandardMaterial({ color, roughness: .9 }));
+  const bookGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const bookUV = bookGeometry.getAttribute('uv');
+  for (let face = 0; face < 6; face++) {
+    // ±X face the visitor on either library wall. ±Z are the covers; the
+    // horizontal faces show paper, rather than another solid leather block.
+    const [left, right] = face < 2 ? [.02, .23] : face < 4 ? [.52, .98] : [.27, .48];
+    for (let vertex = face * 4; vertex < face * 4 + 4; vertex++) {
+      bookUV.setXY(vertex, left + bookUV.getX(vertex) * (right - left), .02 + bookUV.getY(vertex) * .96);
+    }
+  }
+  bookUV.needsUpdate = true;
+  const bookMaterials = ['#736a55', '#596657', '#715047', '#4b5960', '#928361', '#666345', '#706155', '#877355']
+    .map((color, index) => new THREE.MeshStandardMaterial({ color: '#ffffff', map: bookTexture(color, index), roughness: .94 }));
+  const bookMaterialSet = new Set(bookMaterials);
   let randomState = 918237;
   function random() { randomState = (Math.imul(randomState, 1664525) + 1013904223) | 0; return (randomState >>> 0) / 4294967296; }
   [-1, 1].forEach((side) => {
@@ -161,21 +220,26 @@ export function createMuseum(scene, artworks = []) {
 
   function bookshelf(side, z, width) {
     const x = side * 5.94;
-    box(materials.dark, x, 1.95, z, .62, 3.9, width);
+    // An actual thin backing, inset between the uprights. The former solid
+    // carcass overlapped their side faces and flickered whenever the eye moved.
+    box(materials.dark, side * 6.20, 1.95, z, .07, 3.78, width - .24);
     box(materials.wood, x - side * .04, .14, z, .76, .28, width + .14);
     box(materials.wood, x - side * .04, 3.83, z, .8, .23, width + .17);
+    box(materials.woodLight, x - side * .05, 3.98, z, .86, .07, width + .23);
+    box(materials.wood, x - side * .06, 4.04, z, .89, .045, width + .26);
     [-1, 1].forEach((end) => box(materials.woodLight, x - side * .04, 1.94, z + end * (width / 2 - .055), .72, 3.75, .11));
     for (let shelf = 0; shelf <= 5; shelf++) {
       const y = .38 + shelf * .64;
-      box(materials.woodLight, x - side * .04, y, z, .73, .065, width);
+      box(materials.woodLight, x - side * .04, y, z, .73, .065, width - .22);
       if (shelf === 5) continue;
       let cursor = -width / 2 + .13;
       while (cursor < width / 2 - .15) {
         const spine = .052 + random() * .072;
         const height = .33 + random() * .205;
         const bookMat = bookMaterials[Math.floor(random() * bookMaterials.length)];
-        box(bookMat, x - side * .15, y + height / 2 + .04, z + cursor + spine / 2, .34 + random() * .08, height, spine);
-        if (random() > .65) box(materials.brass, x - side * .368, y + height * .78, z + cursor + spine / 2, .008, .012, spine * .78);
+        batch(bookGeometry, bookMat, x - side * .15, y + height / 2 + .04, z + cursor + spine / 2, .34 + random() * .08, height, spine);
+        // No sub-pixel foil rules: the restrained coloured spines read well at
+        // shelf distance and do not pepper the image with moving gold speckles.
         cursor += spine + .013 + random() * .016;
       }
     }
@@ -313,20 +377,23 @@ export function createMuseum(scene, artworks = []) {
   }
 
   function galleryCeiling(x, z, w, d, material) {
-    box(material, x, 5.66, z, w, .17, d);
-    // Broad plaster coffers and narrow timber borders.
+    box(material, x, 5.69, z, w, .18, d);
+    // Shallow plaster coffers. Tonal changes and broad mouldings describe the
+    // ceiling without the high-contrast timber checkerboard of the prototype.
     for (let ix = -1; ix <= 1; ix++) {
       for (let iz = -1; iz <= 1; iz++) {
-        box(materials.stone, x + ix * w / 3, 5.51, z + iz * d / 3, w / 3 - .25, .12, d / 3 - .25);
+        box(materials.ceiling, x + ix * w / 3, 5.57, z + iz * d / 3, w / 3 - .30, .08, d / 3 - .30);
       }
     }
-    for (let i = -1; i <= 1; i++) {
-      box(materials.wood, x + (i + .5) * w / 3, 5.45, z, .08, .075, d);
-      box(materials.wood, x, 5.45, z + (i + .5) * d / 3, w, .075, .08);
+    for (let i = -1; i <= 0; i++) {
+      box(materials.pale, x + (i + .5) * w / 3, 5.46, z, .19, .23, d);
+      box(materials.pale, x, 5.46, z + (i + .5) * d / 3, w, .23, .19);
     }
     [-1, 1].forEach((side) => {
       box(materials.pale, x + side * (w / 2 - .12), 5.33, z, .23, .18, d);
       box(materials.pale, x, 5.33, z + side * (d / 2 - .12), w, .18, .23);
+      box(materials.stone, x + side * (w / 2 - .075), 5.17, z, .14, .13, d);
+      box(materials.stone, x, 5.17, z + side * (d / 2 - .075), w, .13, .14);
     });
   }
 
@@ -364,30 +431,52 @@ export function createMuseum(scene, artworks = []) {
   }
 
   function readingTable(x, z) {
-    box(materials.woodLight, x, .81, z, 1.72, .14, 4.2);
-    box(materials.wood, x, .7, z, 1.5, .14, 3.92);
+    roundedBox(materials.woodLight, x, .81, z, 1.72, .14, 4.2, .035);
+    roundedBox(materials.wood, x, .70, z, 1.5, .14, 3.92, .02);
+    // Inset leather pads give the polished walnut somewhere to rest the eye.
+    [-1.15, 1.15].forEach((dz) => roundedBox(materials.leather, x, .886, z + dz, .75, .012, 1.04, .005));
     [-1, 1].forEach((sx) => [-1, 1].forEach((sz) => {
-      box(materials.wood, x + sx * .66, .35, z + sz * 1.73, .12, .7, .12);
+      roundedBox(materials.wood, x + sx * .66, .35, z + sz * 1.73, .12, .7, .12, .012);
     }));
     [-1.16, 1.16].forEach((dz) => {
-      // Banker lamps, with an emissive underside and a green metal shade.
-      cylinder(materials.brass, x, .916, z + dz, .17, .035);
-      cylinder(materials.brass, x, 1.1, z + dz, .024, .37);
-      box(materials.green, x, 1.31, z + dz, .53, .14, .29);
-      box(materials.light, x, 1.235, z + dz, .44, .022, .23);
+      bankerLamp(x, z + dz);
     });
     [-1, 1].forEach((side) => {
       [-1.2, 1.2].forEach((dz) => chair(x + side * 1.23, z + dz, side < 0 ? Math.PI / 2 : -Math.PI / 2));
     });
     // A closed folio and a cream reading sheet, with no invented catalogue attribution.
-    box(materials.red, x + .15, .905, z, .46, .052, .64, -.13);
+    roundedBox(materials.red, x + .15, .913, z, .46, .052, .64, .012, -.13);
     box(materials.pale, x - .24, .89, z + .45, .4, .012, .56, .08);
     obstacle(x, z, 3.25, 4.6);
     contactShadow(x, z, 3.7, 4.9, .25);
   }
+  function bankerLamp(x, z) {
+    batch(sphereGeometry, materials.brass, x, .919, z, .18, .038, .145);
+    cylinder(materials.brass, x, 1.10, z + .10, .018, .36);
+    cylinder(materials.brass, x, 1.27, z + .10, .032, .05);
+    // A half-cylinder of green opal glass, with brass end caps and an actual
+    // warm tube beneath it. Shared geometry keeps all eight lamps inexpensive.
+    if (!bankerLamp.shade) {
+      bankerLamp.shade = new THREE.CylinderGeometry(.151, .151, .54, 20, 1, false, 0, Math.PI);
+      bankerLamp.tube = new THREE.CylinderGeometry(.025, .025, .42, 10);
+      bankerLamp.cap = new THREE.CylinderGeometry(.154, .154, .018, 20, 1, false, 0, Math.PI);
+    }
+    batch(bankerLamp.shade, materials.lampGlass, x, 1.29, z, 1, 1, 1, 0, Math.PI / 2);
+    batch(bankerLamp.tube, materials.light, x, 1.27, z, 1, 1, 1, 0, Math.PI / 2);
+    [-1, 1].forEach((side) => {
+      batch(bankerLamp.cap, materials.brass, x + side * .279, 1.29, z, 1, 1, 1, 0, Math.PI / 2);
+      cylinder(materials.brass, x + side * .256, 1.259, z + .10, .012, .07);
+    });
+    box(materials.brass, x, 1.23, z + .10, .54, .023, .023);
+    if (!bankerLamp.glowMaterial) bankerLamp.glowMaterial = new THREE.MeshBasicMaterial({ map: createShadowTexture(), color: '#ffe5ac', transparent: true, opacity: .13, depthWrite: false, blending: THREE.AdditiveBlending });
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(.9, .82), bankerLamp.glowMaterial);
+    glow.rotation.x = -Math.PI / 2;
+    glow.position.set(x, .899, z - .06);
+    building.add(glow);
+  }
   function chair(x, z, rotation) {
     const c = Math.cos(rotation), s = Math.sin(rotation);
-    function local(mat, px, y, pz, w, h, d) { box(mat, x + c * px + s * pz, y, z - s * px + c * pz, w, h, d, rotation); }
+    function local(mat, px, y, pz, w, h, d) { roundedBox(mat, x + c * px + s * pz, y, z - s * px + c * pz, w, h, d, Math.min(.018, h / 4, w / 4, d / 4), rotation); }
     local(materials.wood, 0, .45, 0, .58, .08, .59);
     local(materials.leather, 0, .507, 0, .51, .065, .5);
     local(materials.wood, 0, .85, .25, .57, .52, .075);
@@ -395,8 +484,8 @@ export function createMuseum(scene, artworks = []) {
     [-1, 1].forEach((sx) => [-1, 1].forEach((sz) => local(materials.wood, sx * .22, .22, sz * .22, .055, .44, .055)));
   }
   function galleryBench(x, z, rotation) {
-    box(materials.wood, x, .43, z, 3.25, .15, .89, rotation);
-    box(materials.leather, x, .54, z, 3.1, .1, .78, rotation);
+    roundedBox(materials.wood, x, .43, z, 3.25, .15, .89, .035, rotation);
+    roundedBox(materials.leather, x, .54, z, 3.1, .1, .78, .045, rotation);
     const s = Math.sin(rotation), c = Math.cos(rotation);
     [-1.15, 1.15].forEach((dx) => box(materials.brass, x + c * dx, .2, z - s * dx, .09, .4, .68, rotation));
     obstacle(x, z, rotation ? 1.1 : 3.45, rotation ? 3.45 : 1.1);
@@ -450,27 +539,30 @@ export function createMuseum(scene, artworks = []) {
   for (const { geometry, material, matrices } of batches.values()) {
     const mesh = new THREE.InstancedMesh(geometry, material, matrices.length);
     matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
-    mesh.castShadow = material !== materials.glass && material !== materials.light;
-    mesh.receiveShadow = true;
+    const tinyDetail = bookMaterialSet.has(material) || material === materials.brass || material === materials.lampGlass;
+    // Architectural masses and furniture cast stable shadows. Thousands of book
+    // edges and tiny fittings cannot be resolved by a building-sized shadow map.
+    mesh.castShadow = !tinyDetail && material !== materials.glass && material !== materials.light;
+    mesh.receiveShadow = !tinyDetail && material !== materials.light;
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
     building.add(mesh);
   }
-  const hemisphere = new THREE.HemisphereLight('#e1ecf0', '#8b7054', 2.05);
+  const hemisphere = new THREE.HemisphereLight('#e4eced', '#93816a', 1.15);
   scene.add(hemisphere);
-  const sun = new THREE.DirectionalLight('#fff0d3', 3.0);
+  const sun = new THREE.DirectionalLight('#fff1dc', 2.4);
   sun.position.set(-9, 18, 11);
   sun.target.position.set(0, 0, -7);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(4096, 4096);
   sun.shadow.camera.left = -29;
   sun.shadow.camera.right = 29;
   sun.shadow.camera.top = 30;
   sun.shadow.camera.bottom = -30;
   sun.shadow.camera.near = .5;
   sun.shadow.camera.far = 70;
-  sun.shadow.bias = -.0003;
-  sun.shadow.normalBias = .035;
+  sun.shadow.bias = -.00018;
+  sun.shadow.normalBias = .025;
   scene.add(sun, sun.target);
 
   return { spawn: { x: 0, z: 15, yaw: Math.PI }, rooms, walkable, obstacles, exhibits, texturePromises };
@@ -514,51 +606,6 @@ function archBandGeometry(radiusX, radiusY, thickness, baseY, depth) {
   const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 48 });
   geometry.translate(0, 0, -depth / 2);
   return geometry;
-}
-
-function createParquetTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 1024;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#6e4b31';
-  ctx.fillRect(0, 0, 1024, 1024);
-  const random = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
-  // Classic two-by-one herringbone tile; each block gets restrained wood grain.
-  const unit = 64;
-  const length = 4;
-  for (let row = -length; row < 20; row++) {
-    for (let col = -length; col < 20; col++) {
-      if (((row + col) % (length * 2) + length * 2) % (length * 2) !== 0) continue;
-      const x = col * unit, y = row * unit;
-      plank(x, y, length * unit, unit, col * 31 + row * 17, false);
-      plank(x + length * unit, y, unit, length * unit, col * 43 + row * 29, true);
-    }
-  }
-  function plank(x, y, w, h, seed, vertical) {
-    const v = random(seed), base = 92 + v * 31;
-    ctx.fillStyle = `rgb(${base + 45},${base + 14},${base - 12})`;
-    ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-    for (let i = 0; i < 15; i++) {
-      const p = random(seed + i * 18.3);
-      ctx.strokeStyle = `rgba(58,30,12,${.025 + random(seed + i) * .07})`;
-      ctx.lineWidth = .7 + random(seed + i * 3) * 1.8;
-      ctx.beginPath();
-      if (vertical) {
-        ctx.moveTo(x + p * w, y + 3);
-        ctx.bezierCurveTo(x + p * w + 7, y + h / 3, x + p * w - 6, y + h * .7, x + p * w + 2, y + h - 3);
-      } else {
-        ctx.moveTo(x + 3, y + p * h);
-        ctx.bezierCurveTo(x + w / 3, y + p * h + 7, x + w * .7, y + p * h - 6, x + w - 3, y + p * h + 2);
-      }
-      ctx.stroke();
-    }
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(46 / 6.4, 56 / 6.4);
-  texture.anisotropy = 8;
-  return texture;
 }
 
 function createShadowTexture() {
