@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#202821">
+  <meta name="description" content="Атлас — вымышленный музей искусства и книги. Четыре зала, настоящие картины и свободная прогулка в 3D.">
+  <title>Атлас — музей искусства и книги</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23202821'/%3E%3Cpath d='M14 48 32 13 50 48M22 34h20' fill='none' stroke='%23d7b785' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="scene" tabindex="0" aria-label="Трёхмерные залы музея. WASD — ходить, мышь — осматриваться, E — читать об экспонате."></canvas>
+  <div id="loading" role="status"><span class="monogram">А</span><span>Открываем музей</span><div class="load-track"><i></i></div></div>
+  <div id="unsupported" class="hidden"><div class="dialog compact"><span class="eyebrow">Не удалось открыть 3D</span><h1>Нужен WebGL 2</h1><p>Откройте музей в актуальном Chrome, Firefox или Edge с включённым аппаратным ускорением.</p><p id="error-detail"></p></div></div>
+
+  <header id="header">
+    <a class="brand" href="#" id="brand-home" aria-label="Атлас — в начало"><svg viewBox="0 0 32 36" aria-hidden="true"><path d="M3 32 16 4 29 32M8 22h16M16 4v28"/></svg><span>АТЛАС<small>МУЗЕЙ ИСКУССТВА И КНИГИ</small></span></a>
+    <div class="header-caption">Вымышленное место. Настоящее искусство.</div>
+    <button class="text-button" id="menu-button" aria-label="Открыть план музея">План музея <span>→</span></button>
+  </header>
+
+  <main id="welcome">
+    <div class="welcome-copy"><div class="eyebrow"><span class="tiny-line"></span> МУЗЕЙ ОТКРЫТ ДЛЯ ВАС</div><h1>Искусство<br>быть <em>здесь.</em></h1><p>Под сводами старой библиотеки — целый мир.<br class="desktop"> Откройте залы, найдите знакомую картину<br class="desktop"> и задержитесь у той, которую видите впервые.</p><button id="enter" class="primary">Войти в музей <span>→</span></button><div class="entry-note">Без билетов. Без спешки. В своём темпе.</div></div>
+    <div class="welcome-footer"><div class="collection-count"><span>01 — 04</span><p>Четыре зала.<br>Один свободный маршрут.</p></div><div class="intro-controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> идти</span><span><i>↔</i> мышь — осматриваться</span><span><kbd>E</kbd> изучить картину</span></div><div class="edition">ЦИФРОВАЯ КОЛЛЕКЦИЯ<br><span>Первая экспозиция · 2026</span></div></div>
+  </main>
+
+  <div id="hud" class="hidden">
+    <div id="room-card"><span class="eyebrow" id="room-number">ЗАЛ 01 / 04</span><div id="room-name">Большая библиотека</div><span id="room-subtitle">Искусство начинается с любопытства</span></div>
+    <div id="crosshair" aria-hidden="true"></div>
+    <button id="inspect-prompt" class="hidden"><kbd>E</kbd><span><small>РАССМОТРЕТЬ БЛИЖЕ</small><strong id="prompt-title"></strong></span><span>→</span></button>
+    <div class="hud-footer"><span><kbd>WASD</kbd> идти <b>·</b> <kbd>Shift</kbd> быстрее <b>·</b> <kbd>Esc</kbd> меню</span><span><span id="visited-count">0</span><span id="total-count"></span> произведений <b>·</b> <span id="fps">— FPS</span></span></div>
+    <div id="mouse-help" class="hidden">Зажмите левую кнопку мыши и двигайте её для обзора. Нажмите на зал, чтобы захватить курсор.</div>
+  </div>
+  <div id="toast" class="hidden" role="status" aria-live="polite"></div>
+
+  <div id="pause" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <section class="dialog"><div class="eyebrow">МОЖНО НЕМНОГО ЗАДЕРЖАТЬСЯ</div><h2 id="pause-title">Музей подождёт.</h2><p>Продолжите прогулку или загляните в другой зал.</p><button id="resume" class="primary">Вернуться в музей <span>→</span></button><button id="open-map" class="secondary wide">Выбрать зал <span>→</span></button>
+      <div class="sensitivity"><label for="sensitivity">Чувствительность мыши <output id="sensitivity-value">1.00×</output></label><input id="sensitivity" type="range" min="25" max="200" value="100"></div>
+      <div class="control-grid"><span><kbd>WASD</kbd> / стрелки</span><span>Движение</span><span>Мышь</span><span>Осмотреться</span><span><kbd>E</kbd></span><span>О картине</span><span><kbd>M</kbd></span><span>План музея</span><span><kbd>F</kbd> / <kbd>P</kbd></span><span>Полный экран / снимок</span></div>
+      <div class="dialog-bottom"><button id="fullscreen" class="text-button">Полный экран →</button><button id="restart" class="text-button">К началу прогулки</button></div>
+    </section>
+  </div>
+
+  <div id="map" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="map-title">
+    <section class="dialog map-dialog"><button class="close-button" id="close-map" aria-label="Закрыть план музея">×</button><div class="eyebrow">НАЙДИТЕ СВОЙ МАРШРУТ</div><h2 id="map-title">Четыре настроения.</h2><p>Залы соединены проходами. Можно дойти пешком или сразу перейти в выбранный зал.</p>
+      <div class="museum-plan" aria-hidden="true"><div class="plan-north">04 <span>Северный кабинет</span></div><div class="plan-west">02 <span>Западная галерея</span></div><div class="plan-library">01 <span>Библиотека</span></div><div class="plan-east">03 <span>Восточная галерея</span></div><div class="plan-entry">↑ ВХОД</div></div>
+      <div id="room-links"></div><p class="fineprint">Пространство и архитектура вымышлены. В галереях — цифровые репродукции подлинных произведений из общественного достояния.</p>
+    </section>
+  </div>
+
+  <div id="inspect" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="art-title">
+    <article class="art-dialog"><button class="close-button" id="close-art" aria-label="Вернуться к прогулке">×</button><div class="art-image-wrap"><img id="art-image" alt=""></div><div class="art-copy"><div class="eyebrow" id="art-number"></div><h2 id="art-title"></h2><p class="art-artist" id="art-artist"></p><div class="rule"></div><p id="art-description"></p><dl><dt>ТЕХНИКА</dt><dd id="art-medium"></dd><dt>КОЛЛЕКЦИЯ</dt><dd id="art-museum"></dd></dl><a id="art-source" target="_blank" rel="noopener noreferrer">Источник и оригинал →</a><button id="return-art" class="primary">Продолжить прогулку <span>→</span></button></div></article>
+  </div>
+
+  <div id="touch-controls" class="hidden"><div class="touch-dpad"><button data-move="KeyW" aria-label="Вперёд">↑</button><button data-move="KeyA" aria-label="Влево">←</button><button data-move="KeyS" aria-label="Назад">↓</button><button data-move="KeyD" aria-label="Вправо">→</button></div><button id="touch-inspect">Изучить</button></div>
+  <noscript>Для прогулки по музею включите JavaScript в браузере.</noscript>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0d1013"/><title>THE LONG ROOM · Прогулка по библиотеке Тринити · v2</title>
+<style>
+:root{--gold:#dfb97c;--text:#f2eee5;--sub:#c0b8a9}*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b0e;color:var(--text);font-family:Inter,'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}button,input{font:inherit}button{cursor:pointer}
+#loading{position:fixed;inset:0;z-index:15;background:#0d1013;display:grid;place-items:center;text-align:center;padding:24px;transition:opacity .6s}
+#loading .brand{font-family:Georgia,serif;color:#e6bd7d;font-size:clamp(23px,4vw,44px);letter-spacing:.12em}#loading .track{height:2px;width:220px;background:#ffffff22;margin:30px auto 16px;overflow:hidden}#loadbar{background:#e4ba76;height:100%;width:4%;transition:width .2s}#loadtext{font-size:11px;letter-spacing:.16em;color:#c2ad8f;text-transform:uppercase}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:3;display:none}
+header{position:absolute;top:0;left:0;right:0;height:120px;padding:26px 32px;display:flex;align-items:flex-start;justify-content:space-between;background:linear-gradient(#07090dbb,transparent)}
+.eyebrow{font-size:10px;letter-spacing:.32em;color:#eac992;text-transform:uppercase;font-weight:700}.logoname{font-family:Georgia,serif;font-size:27px;letter-spacing:.055em;margin-top:4px;text-shadow:0 2px 12px #0009}.subline{font-size:12px;color:#d2c6b7;margin-top:4px;letter-spacing:.04em}
+#topright{display:flex;gap:8px;pointer-events:none} .iconbtn{background:#10171bc7;border:1px solid #ffefcf34;border-radius:10px;color:#f3e5cf;width:40px;height:40px;font-size:17px;transition:background .2s}.iconbtn:hover{background:#33413e}
+#reticle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;background:#ffefd7bd;box-shadow:0 0 0 5px #0002}
+#bottom{position:absolute;bottom:0;left:0;right:0;padding:36px 32px 24px;background:linear-gradient(transparent,#060809cc);display:flex;align-items:end;justify-content:space-between;gap:15px}
+.hudtag{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:#e4bc79}.hint{font-size:13px;line-height:1.7;color:#d8d0c6}.key{display:inline-block;border:1px solid #ffffff60;border-bottom-width:2px;border-radius:4px;min-width:22px;padding:0 5px;text-align:center;font-size:11px;font-weight:600;color:#f0e6d5}
+#fps{margin-top:7px;font-size:11px;color:#d4c3ad}#prompt{position:absolute;bottom:128px;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .2s;background:#12191bd9;border:1px solid #d8a7677a;border-radius:9px;padding:11px 17px;color:#fff4dc;font-size:13px;max-width:90%;white-space:nowrap}#prompt.active{opacity:1}
+.modal{position:fixed;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;background:linear-gradient(130deg,#0c1016d9,#090807bc);backdrop-filter:blur(7px);padding:24px}.panel{width:min(580px,100%);border:1px solid #b9986445;background:linear-gradient(153deg,#172022f2,#101416f5);border-radius:18px;box-shadow:0 25px 100px #000a;padding:clamp(25px,4vw,44px)}
+.rule{width:48px;height:2px;background:var(--gold);margin:21px 0}.panel h1{font-family:Georgia,serif;font-weight:400;font-size:clamp(34px,6vw,64px);letter-spacing:.02em;line-height:1.05;margin:12px 0 4px}.panel h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(25px,3.6vw,36px);line-height:1.15;margin:10px 0}.panel p{font-size:14px;line-height:1.7;color:#c9c0b1;max-width:470px}.pill{display:inline-flex;align-items:center;gap:9px;border:1px solid #bd9c644b;border-radius:20px;font-size:10px;letter-spacing:.2em;color:#dfb97c;padding:8px 12px;text-transform:uppercase}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin:23px 0 24px}.control{font-size:12px;color:#bfb5a4;border-left:1px solid #bda36f4e;padding-left:11px}
+.primary{border:0;border-radius:9px;background:linear-gradient(110deg,#cfa873,#e8c899);color:#1b170f;padding:14px 24px;font-size:13px;font-weight:750;letter-spacing:.035em;transition:filter .2s,transform .2s}.primary:hover{filter:brightness(1.09);transform:translateY(-1px)}.secondary{border:1px solid #ddc59c58;background:#ffffff0a;color:#f6eada;border-radius:9px;padding:12px 18px;font-size:13px}.secondary:hover{background:#ffffff1a}.actions{display:flex;flex-wrap:wrap;gap:10px}
+#start{display:flex}#pause,#inspect{display:none}#inspect{z-index:8;background:#080b0da8}#inspect .panel{max-width:510px}.factlabel{color:var(--gold);letter-spacing:.18em;font-size:10px;text-transform:uppercase;font-weight:700}.fact{font-size:14px;line-height:1.65;color:#dfd8cc;border-left:2px solid #cda873;padding:0 0 0 15px;margin:16px 0}
+.option{margin:15px 0}.option label{display:flex;justify-content:space-between;font-size:13px;color:#d8cebf;margin-bottom:9px}.option input{width:100%;accent-color:#e1b476}.option select{background:#121a1d;color:#eee0ce;border:1px solid #e0bb7a5e;padding:10px;border-radius:7px;width:100%}
+#toast{position:absolute;top:95px;right:30px;background:#17211fe3;border:1px solid #d5b77a55;padding:10px 15px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .3s}
+#mouseHelp{position:absolute;top:90px;left:50%;transform:translateX(-50%);max-width:min(92vw,590px);padding:11px 17px;background:#171c1ddf;color:#f0e8d8;border:1px solid #c59b5e88;border-radius:9px;text-align:center;font-size:12px;line-height:1.45;display:none;pointer-events:none}#unsupported{display:none;position:fixed;inset:0;z-index:30;background:#111;align-items:center;justify-content:center;padding:25px;text-align:center}#unsupported strong{color:#d9b47e}
+@media(max-width:650px){header{padding:17px;height:90px}.logoname{font-size:19px}#bottom{padding:16px}.hint{font-size:11px}#bottom>div:nth-child(2){display:none}#prompt{bottom:90px}.panel{padding:24px}}
+</style></head><body>
+<canvas id="scene" tabindex="0" aria-label="3D-прогулка по библиотеке"></canvas>
+<div id="loading"><div><div class="brand">THE LONG ROOM</div><div class="track"><div id="loadbar"></div></div><div id="loadtext">Подготовка архитектуры и освещения</div></div></div>
+<div id="unsupported"><div><strong>WebGL2 недоступен.</strong><p>Откройте файл в актуальном Chrome, Edge или Firefox с включённым аппаратным ускорением.</p></div></div>
+<div id="hud"><header><div><div class="eyebrow">Trinity College Dublin · 1732</div><div class="logoname">The Long Room</div><div class="subline">Историческая архитектурная реконструкция</div></div><div id="topright" class="subline">P · снимок &nbsp;&nbsp; F · полный экран &nbsp;&nbsp; Esc · меню</div></header>
+<div id="reticle"></div><div id="mouseHelp">Курсор свободен. Двигайте мышью над залом, чтобы осматриваться. Для полного обзора нажмите на сцену ещё раз.</div><div id="prompt"></div><div id="toast"></div><div id="bottom"><div><div class="hudtag">Свободная экскурсия</div><div class="hint"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> движение &nbsp;·&nbsp; мышь обзор &nbsp;·&nbsp; <span class="key">Shift</span> быстрый шаг</div><div id="fps">WebGL2 · ограничение 60 FPS</div></div><div class="hint" style="text-align:right"><span class="key">E</span> изучить экспонат<br/><span class="key">Esc</span> пауза</div></div></div>
+<div class="modal" id="start"><div class="panel"><div class="pill">✦ &nbsp;Путешествие во времени · Дублин</div><h1>The Long<br/>Room</h1><div class="rule"></div><p>Пройдите по 65-метровому залу старинной библиотеки Тринити-колледжа. Сводчатые потолки, тёмный дуб, тысячи переплётов и мраморные бюсты — теперь вы внутри.</p><div class="controls"><div class="control"><b>WASD</b><br/>идти</div><div class="control"><b>Мышь</b><br/>осматриваться</div><div class="control"><b>Shift</b><br/>ускориться</div><div class="control"><b>E</b><br/>изучить</div><div class="control"><b>Esc</b><br/>пауза</div></div><div class="actions"><button class="primary" id="enter">Начать прогулку →</button></div><p style="font-size:11px;color:#9e968a;margin-top:24px">Художественная 3D-реконструкция, не архитектурно точный цифровой двойник. Полностью автономный WebGL2-файл, без загрузки внешних библиотек.</p></div></div>
+<div class="modal" id="pause"><div class="panel"><div class="pill">Экскурсия приостановлена</div><h2>Продолжить исследование</h2><p>Мир не рендерится в фоновом режиме, пока игра на паузе.</p><div class="option"><label>Качество <span id="qualityLabel">Сбалансированное</span></label><select id="quality"><option value="auto">Авто (рекомендуется)</option><option value="high">Высокое</option><option value="balanced">Сбалансированное</option><option value="low">Экономичное</option></select></div><div class="option"><label>Максимум FPS <span id="capLabel">60</span></label><select id="fpsCap"><option value="30">30 · экономия энергии</option><option value="60" selected>60 · рекомендуется</option><option value="90">90 · плавнее</option><option value="120">120 · высокая частота</option></select></div><div class="option"><label>Чувствительность мыши <span id="sensLabel">1.0×</span></label><input id="sens" type="range" min="30" max="170" value="100"/></div><div class="actions"><button class="primary" id="resume">Вернуться в зал →</button><button class="secondary" id="restart">В начало</button><button class="secondary" id="screen">⛶ Полный экран</button><button class="secondary" id="shot">⌗ Снимок</button></div></div></div>
+<div class="modal" id="inspect"><div class="panel"><div class="factlabel">Архитектурная заметка · <span id="factnum"></span></div><h2 id="facttitle"></h2><div class="rule"></div><div class="fact" id="factbody"></div><div class="actions"><button class="primary" id="closeFact">Вернуться к прогулке →</button></div></div></div>
+<script>
+(()=>{'use strict';
+const $=s=>document.querySelector(s), canvas=$('#scene');
+let gl;try{gl=canvas.getContext('webgl2',{alpha:false,antialias:true,powerPreference:'high-performance',stencil:false,depth:true,preserveDrawingBuffer:false});}catch(e){}
+if(!gl){$('#loading').style.display='none';$('#unsupported').style.display='flex';return;}
+const VERT=`#version 300 es
+precision highp float;
+in vec3 aPos;in vec3 aNorm;in vec2 aUV;in float aMat;in vec3 aTint;
+uniform mat4 uVP;
+out vec3 vPos;out vec3 vNorm;out vec2 vUV;out float vMat;out vec3 vTint;
+void main(){vPos=aPos;vNorm=aNorm;vUV=aUV;vMat=aMat;vTint=aTint;gl_Position=uVP*vec4(aPos,1.);}`;
+const BVERT=`#version 300 es
+precision highp float;
+in vec3 aPos;in vec3 aNorm;in vec2 aUV;
+in vec3 iPos;in vec3 iScale;in vec4 iTint;
+uniform mat4 uVP;
+out vec3 vPos;out vec3 vNorm;out vec2 vUV;out float vMat;out vec3 vTint;
+void main(){vPos=aPos*iScale+iPos;vNorm=aNorm;vUV=aUV;vMat=9.;vTint=iTint.rgb;gl_Position=uVP*vec4(vPos,1.);}`;
+const FRAG=`#version 300 es
+precision highp float;
+in vec3 vPos,vNorm,vTint;in vec2 vUV;in float vMat;
+uniform sampler2D uAtlas;uniform vec3 uEye;uniform float uTime;
+out vec4 outColor;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+vec3 matTex(float mat,vec2 uv){float col=mod(floor(mat+.5),5.);float row=floor((mat+.5)/5.);vec2 local=fract(uv);vec2 coord=(vec2(col,row)+mix(vec2(.012),vec2(.988),local))/vec2(5.,2.);return texture(uAtlas,coord).rgb;}
+void main(){
+ vec3 n=normalize(vNorm);vec3 base=matTex(vMat,vUV)*vTint;
+ float mat=floor(vMat+.5);
+ if(mat>8.5){
+   float bands=smoothstep(.048,.015,abs(fract(vUV.y*1.9)-.5));
+   float gold=step(.82,hash(vec2(floor(vPos.z*30.),floor(vPos.y*17.))));
+   float spine=abs(n.x)>.7?1.:.22;
+   float h1=1.-smoothstep(.01,.035,abs(vUV.y-.16));
+   float h2=1.-smoothstep(.01,.04,abs(vUV.y-.87));
+   base=mix(base,vec3(.74,.57,.33),max(h1,h2)*.35*spine*gold);
+   float strips=step(.9,hash(vec2(floor(vPos.z*113.),floor(vPos.y*5.))));
+   base+=vec3(.065,.055,.038)*strips*spine;
+ }
+ vec3 sun=normalize(vec3(-.62,.83,-.42));
+ float diffuse=max(dot(n,sun),0.);
+ float sky=max(n.y,0.)*.18;
+ float lateral=abs(n.x)*.14;
+ float upper=clamp(vPos.y/16.,0.,1.);
+ vec3 ambient=mix(vec3(.24,.205,.16),vec3(.31,.32,.35),upper)+vec3(sky+lateral);
+ vec3 light=ambient+vec3(1.0,.78,.52)*diffuse*.74;
+ float pool=0.;
+ for(int k=0;k<3;k++){float zl=12.-float(k)*18.;float d=length(vec3((abs(vPos.x)-5.)*.64, (vPos.y-4.4)*.46, (vPos.z-zl)*.5));pool+=1.1/(1.+d*d*.65);}
+ light+=vec3(1.0,.62,.27)*min(pool,.8)*.42;
+ float win=pow(max(dot(n,normalize(vec3(.68,.42,.18))),0.),3.)*.16;
+ light+=vec3(.36,.49,.61)*win;
+ vec3 color=base*light;
+ if(mat>4.5&&mat<5.5)color+=base*.12;
+ if(mat>6.5&&mat<7.5)color+=base*.08;
+ if(mat>7.5&&mat<8.5)color+=base*.12;
+ vec3 view=normalize(uEye-vPos);vec3 halfV=normalize(sun+view);
+ float specPower=mat>1.5&&mat<2.5?42.:mat>2.5&&mat<3.5?25.:16.;
+ float spec=pow(max(dot(n,halfV),0.),specPower)*(.08+(mat>1.5&&mat<2.5?.21:.02));
+ color+=vec3(1.,.83,.58)*spec;
+ float distanceToEye=distance(uEye,vPos);
+ float fog=1.-exp(-distanceToEye*distanceToEye*.00019);
+ color=mix(color,vec3(.18,.155,.125),fog*.72);
+ color=color/(color+vec3(.38));color=pow(color,vec3(.87));
+ outColor=vec4(color,1.);
+}`;
+function shader(type,src){let s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+function program(v,f){let p=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,v));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,f));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
+const shaderMesh=program(VERT,FRAG),shaderBooks=program(BVERT,FRAG);
+const m4={identity(){return [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]},perspective(fov,aspect,near,far){let f=1/Math.tan(fov/2), nf=1/(near-far);return [f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0]},lookAt(e,c){let z=norm(sub(e,c)),x=norm(cross([0,1,0],z)),y=cross(z,x);return [x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,e),-dot(y,e),-dot(z,e),1]},multiply(a,b){let o=Array(16).fill(0);for(let j=0;j<4;j++)for(let i=0;i<4;i++)for(let k=0;k<4;k++)o[i+j*4]+=a[i+k*4]*b[k+j*4];return o}};
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],norm=a=>{let q=Math.hypot(...a)||1;return a.map(v=>v/q)};
+let rndSeed=89734;function rand(){rndSeed=(Math.imul(rndSeed,1664525)+1013904223)>>>0;return rndSeed/4294967296}function rr(a,b){return a+(b-a)*rand()}
+// Procedural materials painted once into a texture atlas; no Canvas-2D scene renderer is used.
+const atlas=document.createElement('canvas');atlas.width=1280;atlas.height=512;const ctx=atlas.getContext('2d',{willReadFrequently:false});
+function tile(i,base,fn){let tx=i%5*256,ty=Math.floor(i/5)*256;ctx.save();ctx.translate(tx,ty);ctx.fillStyle=base;ctx.fillRect(0,0,256,256);fn&&fn(ctx);ctx.restore();}
+function fibers(c,shade,count,vertical=true){for(let n=0;n<count;n++){let q=rand()*256;c.strokeStyle=shade;c.globalAlpha=rr(.025,.16);c.lineWidth=rr(.3,2);c.beginPath();if(vertical){c.moveTo(q,0);c.bezierCurveTo(q+rr(-10,10),90,q+rr(-8,8),155,q+rr(-8,8),256)}else{c.moveTo(0,q);c.bezierCurveTo(90,q+rr(-8,8),160,q+rr(-6,6),256,q+rr(-6,6))}c.stroke();}c.globalAlpha=1;}
+tile(0,'#3a251a',c=>{fibers(c,'#dba56e',290,true);fibers(c,'#000000',130,true);for(let x=0;x<256;x+=64){c.fillStyle='#130c09';c.fillRect(x,0,2,256);c.fillStyle='#c0925d';c.fillRect(x+3,0,1,256);}});
+tile(1,'#64422a',c=>{fibers(c,'#dfb77d',330,true);fibers(c,'#120c08',140,true);});
+tile(2,'#694527',c=>{for(let x=0;x<256;x+=43){c.fillStyle=rand()>.5?'#785334':'#5f3d24';c.fillRect(x,0,43,256);c.fillStyle='#22160e';c.fillRect(x,0,2,256);for(let y=0;y<256;y+=64){c.fillStyle='#2b1b12';c.fillRect(x,y,43,1)}}fibers(c,'#d9a46b',330,true);fibers(c,'#120b07',200,true);});
+tile(3,'#a8a59a',c=>{for(let n=0;n<680;n++){let x=rr(0,256),y=rr(0,256);c.fillStyle=rand()<.5?'#c7c4b8':'#88877e';c.globalAlpha=rr(.015,.1);c.fillRect(x,y,rr(1,30),rr(1,3));}c.globalAlpha=1;});
+tile(4,'#777063',c=>{for(let n=0;n<1000;n++){c.fillStyle=rand()>.5?'#b3a89b':'#312d27';c.globalAlpha=rr(.02,.12);c.fillRect(rand()*256,rand()*256,rr(1,18),rr(1,3));}c.globalAlpha=1;});
+tile(5,'#aa7845',c=>{fibers(c,'#f8d394',230,true);});
+tile(6,'#5c3925',c=>{fibers(c,'#b47f57',270,true);for(let x=0;x<256;x+=40){c.fillStyle='#301d14';c.fillRect(x,0,3,256);c.fillStyle='#94603c';c.fillRect(x+4,0,2,256)}});
+tile(7,'#315d57',c=>{for(let n=0;n<1400;n++){c.fillStyle=rand()>.5?'#a3c6b2':'#091b1a';c.globalAlpha=rr(.02,.08);c.fillRect(rand()*256,rand()*256,2,rr(1,4));}c.globalAlpha=1;});
+tile(8,'#ded0a7',c=>{for(let n=0;n<210;n++){c.fillStyle='#8f7751';c.globalAlpha=.18;c.fillRect(rr(5,245),rr(0,256),rr(3,65),rr(.5,1.8));}c.globalAlpha=1;});
+tile(9,'#c6b69a',c=>{fibers(c,'#6e553b',190,true);});
+const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,atlas);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.generateMipmap(gl.TEXTURE_2D);
+$('#loadbar').style.width='25%';
+const arr=[],ind=[],books=[];let numVerts=0;
+function vert(p,n,uv,mat,t){arr.push(...p,...n,...uv,mat,...t);return numVerts++;}
+function quad(a,b,c,d,mat,t=[1,1,1],uv=[[0,0],[1,0],[1,1],[0,1]]){let n=norm(cross(sub(b,a),sub(d,a))),s=numVerts;vert(a,n,uv[0],mat,t);vert(b,n,uv[1],mat,t);vert(c,n,uv[2],mat,t);vert(d,n,uv[3],mat,t);ind.push(s,s+1,s+2,s,s+2,s+3);}
+function box(x,y,z,w,h,d,mat=0,t=[1,1,1],s=1){let a=x-w/2,b=x+w/2,c=y-h/2,e=y+h/2,f=z-d/2,g=z+d/2,U=w*s,V=h*s,D=d*s;
+quad([b,c,f],[b,e,f],[b,e,g],[b,c,g],mat,t,[[0,0],[0,V],[D,V],[D,0]]);
+quad([a,c,g],[a,e,g],[a,e,f],[a,c,f],mat,t,[[0,0],[0,V],[D,V],[D,0]]);
+quad([a,c,g],[b,c,g],[b,e,g],[a,e,g],mat,t,[[0,0],[U,0],[U,V],[0,V]]);
+quad([b,c,f],[a,c,f],[a,e,f],[b,e,f],mat,t,[[0,0],[U,0],[U,V],[0,V]]);
+quad([a,e,g],[b,e,g],[b,e,f],[a,e,f],mat,t,[[0,0],[U,0],[U,D],[0,D]]);
+quad([a,c,f],[b,c,f],[b,c,g],[a,c,g],mat,t,[[0,0],[U,0],[U,D],[0,D]]);}
+function cylinder(x,y,z,r,h,mat=0,t=[1,1,1],sides=10,rTop=r){const N=sides;for(let i=0;i<N;i++){let a=i/N*Math.PI*2,b=(i+1)/N*Math.PI*2,A=[x+Math.cos(a)*r,y-h/2,z+Math.sin(a)*r],B=[x+Math.cos(b)*r,y-h/2,z+Math.sin(b)*r],C=[x+Math.cos(b)*rTop,y+h/2,z+Math.sin(b)*rTop],D=[x+Math.cos(a)*rTop,y+h/2,z+Math.sin(a)*rTop];quad(A,B,C,D,mat,t,[[i/N,0],[(i+1)/N,0],[(i+1)/N,1],[i/N,1]])}}
+function sphere(x,y,z,rx,ry,rz,mat=3,t=[1,1,1],seg=20,stacks=14){for(let j=0;j<stacks;j++)for(let i=0;i<seg;i++){let t1=j/stacks*Math.PI,t2=(j+1)/stacks*Math.PI,p1=i/seg*2*Math.PI,p2=(i+1)/seg*2*Math.PI,begin=numVerts;for(let [ph,th,u,v] of [[p1,t1,0,0],[p2,t1,1,0],[p2,t2,1,1],[p1,t2,0,1]]){let sx=Math.sin(th)*Math.cos(ph),sy=Math.cos(th),sz=Math.sin(th)*Math.sin(ph);vert([x+sx*rx,y+sy*ry,z+sz*rz],norm([sx/rx,sy/ry,sz/rz]),[u,v],mat,t)}ind.push(begin,begin+1,begin+2,begin,begin+2,begin+3)}}
+// Long Room dimensions: approximately 65 x 12.8 meters; elevation stylized.
+box(0,-.14,0,13.8,.26,64,2,[1.08,.92,.75],2.1);
+for(let side of [-1,1]){
+box(side*6.43,5.6,0,.55,11.2,64,0,[.85,.72,.6]);
+box(side*6.15,.18,0,.5,.36,64,0,[1.12,.91,.71]);
+box(side*5.85,6.65,0,1.05,.31,64,0,[1.06,.82,.58]);
+box(side*5.67,6.85,0,.74,.13,64,5,[.66,.6,.47]);
+box(side*5.22,6.85,0,.20,.12,64,5,[.75,.65,.52]);
+box(side*5.28,7.45,0,.08,1.1,64,0,[.75,.52,.35]);
+box(side*5.2,7.98,0,.22,.15,64,0,[1.1,.82,.56]);
+for(let j=0;j<200;j++){let z=-31+j*.31;box(side*5.19,7.04,z,.072,.43,.065,5,[.86,.72,.53]);}
+}
+// Stone foyer trim, central carpet run and gold inlay.
+box(0,.018,0,3.4,.034,53,7,[.25,.36,.35],.4);
+for(let sx of [-1,1]){box(sx*1.75,.04,0,.064,.032,53,5,[.86,.7,.47]);box(sx*5.01,.035,0,.05,.028,62,5,[.64,.53,.38]);}
+for(let z=-25.5;z<27;z+=2.9)box(0,.043,z,3.32,.018,.022,5,[.42,.4,.34]);
+// Wood ceiling: an elliptical barrel vault, with curved exposed oak ribs.
+function archY(x){return 10.05+4.7*Math.sqrt(Math.max(0,1-(x/6.48)**2));}
+for(let side=0;side<2;side++){for(let j=0;j<42;j++){let z1=-32+j*64/42,z2=-32+(j+1)*64/42;for(let i=0;i<30;i++){let x1=-6.42+i*12.84/30,x2=-6.42+(i+1)*12.84/30;let tone=.84+(j%4===0?.1:0)+rr(-.045,.045);quad([x1,archY(x1),z1],[x2,archY(x2),z1],[x2,archY(x2),z2],[x1,archY(x1),z2],6,[tone,tone*.89,tone*.77],[[0,0],[.5,0],[.5,.8],[0,.8]]);}}break;}
+function archStrip(z,mat=0,th=.15,tint=[.78,.66,.55]){for(let i=0;i<30;i++){let a=-6.4+i*12.8/30,b=-6.4+(i+1)*12.8/30;let h1=archY(a)-.07,h2=archY(b)-.07;quad([a,h1,z-th/2],[b,h2,z-th/2],[b,h2,z+th/2],[a,h1,z+th/2],mat,tint,[[0,0],[.2,0],[.2,.5],[0,.5]]);}}
+for(let z=-30;z<=30.2;z+=3.25){archStrip(z,0,.2,[.82,.66,.49]);archStrip(z+.12,5,.025,[.67,.53,.32]);}
+for(let sx of [-1,1]){box(sx*6.19,10.1,0,.21,.27,64,0,[.78,.62,.46]);box(sx*6.02,9.93,0,.14,.09,64,5,[.7,.54,.37]);}
+// Upper windows set into the gallery walls.
+for(let side of [-1,1])for(let z=-26.5;z<28;z+=6.5){box(side*6.18,9.3,z,.12,2.8,1.35,5,[.76,.6,.39]);box(side*6.11,9.3,z,.10,2.48,1.07,8,[.66,.8,.96]);for(let zz of [-.52,.52])box(side*6.04,9.35,z+zz,.16,2.5,.045,0,[.72,.58,.43]);box(side*6.02,9.25,z,.14,.045,1.4,0,[.76,.59,.41]);}
+// Facade volumes, shelves and pilasters. Huge number of books rendered in one GPU instanced draw call.
+const P=['#713b2d','#70492f','#384c43','#354d57','#88704f','#734e44','#493f59','#75613f','#353d34','#593b38','#847357','#324c5b'];function rgb(hex){return [parseInt(hex.slice(1,3),16)/255,parseInt(hex.slice(3,5),16)/255,parseInt(hex.slice(5,7),16)/255]}
+const bookRows=[.72,1.48,2.24,3,3.76,4.52,5.27,7.47,8.21,8.95,9.69,10.43];
+let bookCounter=0;
+for(let side of [-1,1]){
+  for(let bay=0;bay<19;bay++){
+    let z=-29.25+bay*3.25;
+    for(let level=0;level<2;level++){
+      let Y=level===0?3.2:9.1,H=level===0?6.35:4.4;
+      box(side*5.84,Y,z,.28,H,3.01,0,[.79,.63,.48]); // rear back
+      box(side*5.51,Y,z-1.48,.78,H,.15,0,[.93,.76,.56]);
+      box(side*5.51,Y,z+1.48,.78,H,.15,0,[.93,.76,.56]);
+      box(side*5.24,Y,z,.13,H,.075,5,[.83,.61,.4]);
+      box(side*5.7,Y+H/2,z,.76,.19,3.05,0,[1,.76,.56]);
+      box(side*5.7,Y-H/2,z,.76,.19,3.05,0,[.83,.6,.41]);
+    }
+    for(let shelf=0;shelf<bookRows.length;shelf++){
+      let y=bookRows[shelf], upper=shelf>=7; if(upper&&bay%5===4)continue;
+      box(side*5.55,y-.27,z,.85,.092,2.96,0,[.92,.75,.56]);
+      box(side*5.11,y-.23,z,.075,.13,3,5,[.69,.5,.29]);
+      let zz=z-1.40;
+      while(zz<z+1.35){let d=rr(.065,.125); if(rand()<.023){zz+=rr(.1,.28);continue;}let ht=rr(.36,.58),w=rr(.22,.34),color=rgb(P[Math.floor(rand()*P.length)]),shade=rr(.72,1.16);books.push(side*5.28,y-.27+ht/2+.050,zz+d/2,w,ht,d,...color.map(x=>x*shade),rand());zz+=d+.005;bookCounter++;}
+    }
+    // Gallery fascia below balcony.
+    box(side*5.78,6.23,z,.65,.43,3.08,0,[.98,.74,.53]);
+    box(side*5.32,6.17,z,.06,.25,2.9,5,[.65,.52,.32]);
+  }
+  for(let i=0;i<=19;i++){
+    let z=-30.87+i*3.25;
+    box(side*4.94,3.15,z,.55,6.3,.44,0,[1.06,.88,.64]);
+    box(side*4.86,3.10,z,.15,5.65,.33,1,[.74,.60,.46]);
+    box(side*4.92,6.34,z,.79,.35,.7,0,[1.04,.82,.58]);
+    box(side*4.88,6.55,z,.85,.12,.78,5,[.69,.54,.34]);
+    box(side*4.96,9.06,z,.36,4.5,.36,0,[.91,.71,.50]);
+    box(side*4.90,11.32,z,.56,.21,.46,0,[.9,.71,.5]);
+    // Brass sconces near the main aisle and simple wall lamps.
+    if(i>0&&i<19&&i%2===0){box(side*4.72,3.75,z,.40,.13,.23,5,[1.04,.81,.48]);sphere(side*4.67,3.98,z,.15,.22,.15,8,[1.2,.91,.58],8,6);}
+  }
+  // Balcony railing, dark bronze posts
+  for(let i=0;i<=190;i++){let z=-30+i*.318;box(side*4.94,7.24,z,.065,.77,.065,5,[.69,.55,.35]);}
+  box(side*4.94,7.64,0,.13,.10,62,0,[1.04,.85,.63]);
+}
+// Marble busts between the bays with sculpted torsos and plinths.
+for(let side of [-1,1])for(let i=0;i<14;i++){
+  let z=-27.6+i*4.25,x=side*4.20;
+  box(x,.48,z,.78,.9,.78,3,[.87,.82,.74]);box(x,.96,z,.98,.1,.91,3,[.94,.90,.81]);box(x,.12,z,.99,.18,1.0,4,[.88,.8,.72]);
+  cylinder(x,1.19,z,.29,.36,3,[.97,.92,.83],12,.33);
+  sphere(x,1.52,z,.40,.27,.27,3,[1.01,.96,.87],12,8); // shoulders
+  cylinder(x,1.73,z,.13,.30,3,[.9,.86,.8],12,.16);
+  sphere(x,2.02,z,.19,.24,.18,3,[1.06,1,.91],16,10); // head
+  sphere(x-side*.04,2.02,z-side*.17,.055,.082,.073,3,[1.0,.93,.87],8,6); // face relief
+  sphere(x,2.19,z,.195,.065,.18,3,[.79,.76,.70],14,8); // hair
+  sphere(x-side*.185,2.04,z,.064,.086,.079,3,[.93,.90,.85],12,9); // nose and facial silhouette
+  sphere(x-side*.157,2.105,z-.079,.024,.026,.019,3,[.58,.57,.54],8,5);
+  sphere(x-side*.157,2.105,z+.079,.024,.026,.019,3,[.58,.57,.54],8,5);
+  sphere(x-side*.15,1.963,z,.07,.026,.085,3,[.88,.84,.77],12,6); // lip and chin
+  rod([x-side*.24,1.61,z-.16],[x-side*.08,1.42,z-.04],.028,3,[.76,.72,.66],6);
+  rod([x-side*.24,1.61,z+.16],[x-side*.08,1.42,z+.04],.028,3,[.76,.72,.66],6);
+  box(x-side*.295,.74,z,.035,.09,.35,5,[.74,.62,.49]); // engraved nameplate
+}
+// The long corridor's end treatment and freestanding harp exhibition case.
+for(let z of [-31.7,31.7]){
+box(0,6.2,z,13.4,12.45,.6,0,[.78,.61,.45]);
+box(0,4.5,z+(z>0?-.34:.34),4.1,7.6,.18,1,[.64,.51,.4]);
+box(0,4.3,z+(z>0?-.43:.43),2.8,6.9,.17,0,[.62,.49,.4]);
+box(0,8.8,z+(z>0?-.48:.48),7,.19,.12,5,[.79,.65,.43]);
+}
+box(0,.46,-27.4,2.6,.87,1.65,0,[.89,.7,.51]);box(0,.94,-27.4,2.75,.12,1.8,5,[.75,.55,.32]);
+// Stylized medieval harp and strings.
+function rod(a,b,r,mat=5,t=[1,1,1],sides=7){let d=sub(b,a),len=Math.hypot(...d),N=norm(d),ref=Math.abs(N[1])<.93?[0,1,0]:[0,0,1],U=norm(cross(N,ref)),V=cross(N,U);for(let i=0;i<sides;i++){let p=i/sides*Math.PI*2,q=(i+1)/sides*Math.PI*2,off=(ang)=>U.map((e,k)=>e*Math.cos(ang)*r+V[k]*Math.sin(ang)*r),A=a.map((e,k)=>e+off(p)[k]),B=a.map((e,k)=>e+off(q)[k]),C=b.map((e,k)=>e+off(q)[k]),D=b.map((e,k)=>e+off(p)[k]);quad(A,B,C,D,mat,t)}}
+let harpZ=-27.4;rod([-.34,1.04,harpZ],[.35,2.8,harpZ],.052,5,[1.03,.69,.33]);rod([-.34,1.04,harpZ],[.69,1.12,harpZ],.065,5,[1.03,.69,.33]);for(let i=0;i<12;i++){let p=i/11;let top=[.35-.18*Math.sin(p*Math.PI),2.8-p*.35,harpZ];let bot=[-.34+p*.95,1.07,harpZ];rod(top,bot,.006,5,[1.25,1.10,.83],4)}
+// Informational plaques near key artefacts.
+for(let q of [{x:-4.05,z:-9},{x:4.05,z:6},{x:0,z:-24}]){box(q.x,1.05,q.z,.31,.20,.12,5,[.85,.67,.45]);}
+$('#loadbar').style.width='67%';
+const vdata=new Float32Array(arr),idata=new Uint32Array(ind),bdata=new Float32Array(books);
+function buf(target,data){let b=gl.createBuffer();gl.bindBuffer(target,b);gl.bufferData(target,data,gl.STATIC_DRAW);return b;}
+const meshVAO=gl.createVertexArray();gl.bindVertexArray(meshVAO);let staticV=buf(gl.ARRAY_BUFFER,vdata);buf(gl.ELEMENT_ARRAY_BUFFER,idata);
+const S=12*4;function pointer(i,size,offset){gl.enableVertexAttribArray(i);gl.vertexAttribPointer(i,size,gl.FLOAT,false,S,offset*4);}
+pointer(0,3,0);pointer(1,3,3);pointer(2,2,6);pointer(3,1,8);pointer(4,3,9);
+const bookVAO=gl.createVertexArray();gl.bindVertexArray(bookVAO);
+// Single unit cube with separately oriented faces and UV coordinates.
+let unit=[],uinds=[];const face=(p,n)=>{let st=unit.length/8;for(let [i,v] of p.entries())unit.push(...v,...n,...[[0,0],[1,0],[1,1],[0,1]][i]);uinds.push(st,st+1,st+2,st,st+2,st+3)};
+face([[.5,-.5,-.5],[.5,.5,-.5],[.5,.5,.5],[.5,-.5,.5]],[1,0,0]);face([[-.5,-.5,.5],[-.5,.5,.5],[-.5,.5,-.5],[-.5,-.5,-.5]],[-1,0,0]);face([[-.5,-.5,.5],[-.5,.5,.5],[.5,.5,.5],[.5,-.5,.5]],[0,0,1]);face([[.5,-.5,-.5],[.5,.5,-.5],[-.5,.5,-.5],[-.5,-.5,-.5]],[0,0,-1]);face([[-.5,.5,-.5],[-.5,.5,.5],[.5,.5,.5],[.5,.5,-.5]],[0,1,0]);face([[-.5,-.5,.5],[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5]],[0,-1,0]);
+buf(gl.ARRAY_BUFFER,new Float32Array(unit));buf(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(uinds));for(let [i,n,off] of [[0,3,0],[1,3,3],[2,2,6]]){gl.enableVertexAttribArray(i);gl.vertexAttribPointer(i,n,gl.FLOAT,false,32,off*4)}
+buf(gl.ARRAY_BUFFER,bdata);for(let [i,n,off] of [[3,3,0],[4,3,3],[5,4,6]]){gl.enableVertexAttribArray(i);gl.vertexAttribPointer(i,n,gl.FLOAT,false,40,off*4);gl.vertexAttribDivisor(i,1)}gl.bindVertexArray(null);
+$('#loadbar').style.width='93%';
+const state={mode:'start',pos:[0,1.72,26],yaw:Math.PI,pitch:-.015,keys:{},sensitivity:1,quality:'auto',scale:1.08,last:0,elapsed:0,frames:0,avgFps:60,fpsCap:60,slowCount:0,fastCount:0,nearest:-1,visited:new Set(),pointerLocked:false,dragLook:false,mouseHelpShown:false};
+// Facing -Z at yaw=PI; forward direction is (sin(yaw),0,cos(yaw)).
+const stops=[{title:'Сводчатый дубовый потолок',x:0,z:-8,r:5.0,body:'Первоначально потолок библиотеки был плоским. В 1860–1861 годах крышу подняли и построили характерный бочарный свод, одновременно расширив верхний ярус книжных шкафов.'},{title:'Мраморные бюсты',x:3.3,z:6,r:4.6,body:'Собрание скульптур началось в 1743 году. Оно посвящено учёным и писателям, среди которых Джонатан Свифт. Современные пополнения включают Аду Лавлейс и Мэри Уолстонкрафт.'},{title:'Книжные галереи',x:-3.3,z:-9,r:4.5,body:'Исторически в зале размещалось около 200 000 старинных томов. В XXI веке большая часть книг временно изъята для программы реставрации. Здесь показана реконструкция привычного, заполненного фондами интерьера.'},{title:'Историческая арфа',x:0,z:-26,r:4.6,body:'В библиотеке хранится средневековая арфа, традиционно называемая арфой Бриана Бору. Несмотря на название, она относится примерно к XV веку и послужила образцом ирландской государственной эмблемы.'}];
+const keys=new Set();const mutingKeys=['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyE','KeyP'];
+function resetKeys(){keys.clear();state.last=0}
+function ui(mode){state.mode=mode;$('#mouseHelp').style.display='none';for(let id of ['start','pause','inspect'])$('#'+id).style.display=mode===id?'flex':'none';$('#hud').style.display=mode==='start'?'none':'block';}
+// Request standard pointer lock synchronously inside the user's click.
+// The previous unadjustedMovement request could be denied; retrying later
+// from a rejected promise loses the browser's user activation gesture.
+function lock(){
+  if(state.mode!=='play'||document.pointerLockElement===canvas)return;
+  try{
+    const promise=canvas.requestPointerLock();
+    if(promise&&typeof promise.catch==='function')promise.catch(pointerLockFailed);
+  }catch(error){pointerLockFailed(error);}
+}
+function pointerLockFailed(){
+  if(state.mode==='play'&&!state.pointerLocked){
+    $('#mouseHelp').style.display='block';
+    if(!state.mouseHelpShown){showToast('Захват курсора недоступен: используйте мышь над сценой или зажмите ЛКМ');state.mouseHelpShown=true;}
+  }
+}
+function start(){ui('play');resetKeys();state.dragLook=false;canvas.focus({preventScroll:true});lock();run();}
+$('#enter').addEventListener('click',start);$('#resume').addEventListener('click',start);$('#closeFact').addEventListener('click',start);
+$('#restart').addEventListener('click',()=>{state.pos=[0,1.72,26];state.yaw=Math.PI;state.pitch=-.015;start()});
+
+async function toggleFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch(e){showToast('Полный экран недоступен')}}$('#screen').addEventListener('click',toggleFullscreen);
+function pause(){if(state.mode!=='play')return;ui('pause');resetKeys();if(document.pointerLockElement)document.exitPointerLock();}
+$('#quality').addEventListener('change',e=>{state.quality=e.target.value;$('#qualityLabel').textContent=({'auto':'Автоматическое','high':'Высокое','balanced':'Сбалансированное','low':'Экономичное'})[state.quality];state.slowCount=0;state.fastCount=0;resize()});
+$('#fpsCap').addEventListener('change',e=>{state.fpsCap=Number(e.target.value);$('#capLabel').textContent=e.target.value;});
+$('#sens').addEventListener('input',e=>{state.sensitivity=Number(e.target.value)/100;$('#sensLabel').textContent=state.sensitivity.toFixed(2)+'×'});
+const toast=$('#toast');let toastTimer=0;function showToast(s){toast.textContent=s;toast.style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.style.opacity='0',2200)}
+function screenshot(){// Re-render with preserveDrawingBuffer false, then capture in the same task.
+render();canvas.toBlob(blob=>{if(!blob){showToast('Не удалось сохранить снимок');return}let a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download='trinity-long-room.png';a.click();setTimeout(()=>URL.revokeObjectURL(u),1500)},'image/png');}
+$('#shot').addEventListener('click',screenshot);
+function inspect(){if(state.nearest<0||state.mode!=='play')return;let i=state.nearest,s=stops[i];state.visited.add(i);$('#factnum').textContent=(i+1)+' / '+stops.length;$('#facttitle').textContent=s.title;$('#factbody').textContent=s.body;ui('inspect');resetKeys();if(document.pointerLockElement)document.exitPointerLock();}
+window.addEventListener('keydown',e=>{if(mutingKeys.includes(e.code))e.preventDefault();if(e.code==='Escape'){if(state.mode==='play')pause();return;}if(e.repeat)return;keys.add(e.code);if(state.mode==='play'){if(e.code==='KeyE')inspect();if(e.code==='KeyP')screenshot();if(e.code==='KeyF')toggleFullscreen();}});
+window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{resetKeys();if(state.mode==='play')pause()});
+document.addEventListener('pointerlockchange',()=>{
+  const hadLock=state.pointerLocked;
+  state.pointerLocked=document.pointerLockElement===canvas;
+  $('#mouseHelp').style.display=state.pointerLocked?'none':(state.mode==='play'?'block':'none');
+  // Only a LOST lock pauses the game; a FAILED initial lock never does.
+  if(hadLock&&!state.pointerLocked&&state.mode==='play')pause();
+});
+document.addEventListener('pointerlockerror',pointerLockFailed);
+function applyLook(dx,dy){
+  const speed=.0019*state.sensitivity;
+  state.yaw+=Math.max(-250,Math.min(250,dx))*speed;
+  state.pitch=Math.max(-1.40,Math.min(1.40,state.pitch-Math.max(-250,Math.min(250,dy))*speed));
+}
+document.addEventListener('mousemove',e=>{
+  if(state.mode!=='play')return;
+  // Pointer-lock mode: unrestricted first-person mouse look.
+  if(state.pointerLocked){applyLook(e.movementX,e.movementY);return;}
+  // Pointer-lock fallback: mouse look remains usable without permissions.
+  // The cursor can reach the edge, so clicking the scene retries capture.
+  if(e.target===canvas||state.dragLook)applyLook(e.movementX,e.movementY);
+});
+canvas.addEventListener('pointerdown',e=>{
+  if(state.mode!=='play'||e.button!==0)return;
+  state.dragLook=true;
+  if(!state.pointerLocked)lock();
+});
+document.addEventListener('pointerup',()=>{state.dragLook=false});
+canvas.addEventListener('click',()=>{if(state.mode==='play'&&!state.pointerLocked)lock()});
+document.addEventListener('visibilitychange',()=>{resetKeys();if(document.hidden&&state.mode==='play')pause()});
+let runID=0,oldWidth=0,oldHeight=0;
+function pixelScale(){let dpr=Math.min(devicePixelRatio||1,1.6);return Math.min(state.quality==='high'?1.5:state.quality==='balanced'?1.12:state.quality==='low'?.75:state.scale,dpr*1.15)}
+function resize(){let scale=pixelScale(),w=Math.max(300,Math.round(innerWidth*scale)),h=Math.max(200,Math.round(innerHeight*scale));if(w===oldWidth&&h===oldHeight)return;oldWidth=canvas.width=w;oldHeight=canvas.height=h;gl.viewport(0,0,w,h)}
+window.addEventListener('resize',resize);
+function move(dt){let f=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);let r=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);if(!f&&!r)return;let speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?7.1:3.55)*Math.min(.05,dt),len=Math.hypot(f,r);f/=len;r/=len;let yaw=state.yaw,dx=(Math.sin(yaw)*f-Math.cos(yaw)*r)*speed,dz=(Math.cos(yaw)*f+Math.sin(yaw)*r)*speed;
+state.pos[0]=Math.max(-3.72,Math.min(3.72,state.pos[0]+dx));state.pos[2]=Math.max(-29.4,Math.min(29.4,state.pos[2]+dz));}
+function updatePrompt(){let nearest=-1,best=1e3;stops.forEach((s,i)=>{let d=Math.hypot(state.pos[0]-s.x,state.pos[2]-s.z);if(d<s.r&&d<best){best=d;nearest=i}});state.nearest=nearest;let e=$('#prompt');if(nearest>=0){e.innerHTML='<span class="key">E</span> &nbsp; '+stops[nearest].title;e.classList.add('active')}else{e.textContent='';e.classList.remove('active')}}
+function drawProg(p,vao,inst){gl.useProgram(p);gl.uniformMatrix4fv(gl.getUniformLocation(p,'uVP'),false,new Float32Array(VP));gl.uniform3fv(gl.getUniformLocation(p,'uEye'),state.pos);gl.uniform1f(gl.getUniformLocation(p,'uTime'),state.elapsed);gl.uniform1i(gl.getUniformLocation(p,'uAtlas'),0);gl.bindVertexArray(vao);if(inst)gl.drawElementsInstanced(gl.TRIANGLES,36,gl.UNSIGNED_SHORT,0,bookCounter);else gl.drawElements(gl.TRIANGLES,idata.length,gl.UNSIGNED_INT,0);}
+let VP=m4.identity();function render(){resize();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.clearColor(.105,.084,.066,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);let eye=state.pos,target=[eye[0]+Math.sin(state.yaw)*Math.cos(state.pitch),eye[1]+Math.sin(state.pitch),eye[2]+Math.cos(state.yaw)*Math.cos(state.pitch)],view=m4.lookAt(eye,target),proj=m4.perspective(70*Math.PI/180,canvas.width/canvas.height,.06,135);VP=m4.multiply(proj,view);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);drawProg(shaderMesh,meshVAO,false);drawProg(shaderBooks,bookVAO,true);gl.bindVertexArray(null);}
+function run(){if(runID)return;state.last=0;const loop=t=>{if(state.mode!=='play'){runID=0;return;}runID=requestAnimationFrame(loop);if(!state.last)state.last=t-1000/state.fpsCap;let elapsedMs=t-state.last;if(elapsedMs<1000/state.fpsCap-1.3)return;let actualDt=Math.max(elapsedMs/1000,.001),dt=Math.min(actualDt,.075);state.last=t;state.elapsed+=dt;move(dt);render();state.frames++;if(state.frames%12===0){updatePrompt();let instant=Math.round(1/actualDt);state.avgFps=state.avgFps*.7+instant*.3;$('#fps').textContent='WebGL2 · '+Math.round(state.avgFps)+' FPS · '+state.visited.size+'/4 экспоната';if(state.quality==='auto'){
+if(state.avgFps<48){state.slowCount++;state.fastCount=0}else if(state.avgFps>58){state.fastCount++;state.slowCount=0}else{state.slowCount=0;state.fastCount=0}
+if(state.slowCount>=6&&state.scale>.72){state.scale=Math.max(.72,state.scale-.12);resize();state.slowCount=0;}if(state.fastCount>=20&&state.scale<1.27){state.scale=Math.min(1.27,state.scale+.08);resize();state.fastCount=0;}
+}}};runID=requestAnimationFrame(loop)}
+// Build and display only a single still frame before the user starts. No idle animation.
+resize();render();$('#loadbar').style.width='100%';setTimeout(()=>{$('#loading').style.opacity='0';setTimeout(()=>$('#loading').remove(),650)},160);
+console.info('Trinity Long Room WebGL2: '+bookCounter+' instanced books, '+(idata.length/3).toLocaleString()+' static triangles. Single offline HTML.');
+})();
+</script></body></html>

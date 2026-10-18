@@ -1,0 +1,21 @@
+{
+  "name": "atlas-museum",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Автономный виртуальный музей искусства и книги",
+  "scripts": {
+    "postinstall": "node scripts/prepare.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/navigation.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "dependencies": {
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright": "1.62.1"
+  }
+}

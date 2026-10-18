@@ -1,0 +1,2 @@
+# The standalone bundle embeds upstream GLSL strings with intentional whitespace.
+atlas-museum.html linguist-generated=true whitespace=-blank-at-eol
